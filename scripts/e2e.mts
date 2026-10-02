@@ -48,13 +48,16 @@ await host.waitForSelector('.code');
 const code = (await host.textContent('.code'))!.trim();
 pages.push(host);
 for (let i = 1; i < N; i++) {
-  const p = await open(names[i], `${BASE}/?room=${code}&debug`, 800, 500);
+  const p = await open(names[i], `${BASE}/?room=${code}&debug&norender`, 800, 500);
   await p.click(`text=Board ship ${code}`);
   pages.push(p);
 }
-await sleep(600);
+await host.waitForFunction((n) => (window as any).crimson.store.lobby?.players.length === n, N, { timeout: 60000 });
 await host.click(N >= 4 ? 'text=Set sail' : 'text=Practice run');
-await host.waitForSelector('#hud');
+await host.waitForSelector('#hud', { timeout: 180000 }).catch(async (e) => {
+  await host.screenshot({ path: `${OUT}/start-failed.png` });
+  throw e;
+});
 await sleep(1500);
 
 const dbg = await (await fetch(`${BASE}/api/debug/rooms/${code}`)).json();
@@ -82,6 +85,7 @@ async function teleport(i: number, x: number, y: number, z: number, yaw = 0, pit
   }
 }
 const shot = async (i: number, name: string) => {
+  if (i !== 0) return; // bots run with ?norender; only the host draws
   await sleep(400);
   await pages[i].screenshot({ path: `${OUT}/${name}.png` });
 };
@@ -108,6 +112,7 @@ async function goTo(i: number, area: string, slot?: number) {
 const canBeIn = async (i: number, area: string) => {
   const s = await state();
   const cage = cageOf.get(ids[i])!;
+  if (s.practice && (area.startsWith('cage') || area === 'hold')) return true;
   if (area.startsWith('cage')) return Number(area.slice(4)) === cage || (s.cagesOpen.includes(cage) && s.cagesOpen.includes(Number(area.slice(4))));
   if (area === 'hold') return s.cagesOpen.includes(cage);
   return { quarters: 3, deck: 4 }[area as 'quarters' | 'deck'] <= s.act;
@@ -165,12 +170,12 @@ for (const pid of checkScenario(scn).order) {
   for (const it of p.requires.items) await fetchItem(it, actor);
   await goTo(actor, p.area, p.area.startsWith('cage') ? undefined : p.slot);
   const key = `act${p.act}`;
-  if (!shotAt.has(key)) {
+  if (!shotAt.has(key) && actor === 0) {
     shotAt.add(key);
     await shot(actor, `act${p.act}-${p.area}`);
   }
   // Exercise the real click path once: open a puzzle panel by clicking its prop.
-  if (!clickTested && !p.area.startsWith('cage') && p.prop !== 'gate') {
+  if (!clickTested && actor === 0 && !p.area.startsWith('cage') && p.prop !== 'gate') {
     clickTested = true;
     const sp = spotFor(p.area, p.slot);
     await teleport(actor, sp.x, sp.y, sp.z, sp.yaw, -0.25);

@@ -35,6 +35,7 @@ export class Session {
   private lastSentKey = '';
   private positioned = false;
   private lightningAt = 0;
+  private glintAt = 0;
   private disposed = false;
   private keyDown = (e: KeyboardEvent) => this.onKey(e, true);
   private keyUp = (e: KeyboardEvent) => this.onKey(e, false);
@@ -511,6 +512,11 @@ export class Session {
           setTimeout(() => audio.play('thunder'), 300 + Math.random() * 1200);
         }
       }
+    }
+    // Glints depend on distance, so refresh them as the player walks.
+    if (s && now > this.glintAt) {
+      this.glintAt = now + 400;
+      this.world.applyState(s, store.me, store.myRole === 'lookout' ? 60 : 9, this.world.camera.position);
     }
     voice.update();
     for (const pl of store.state?.players ?? []) if (pl.id !== store.me) this.world.setSpeaking(pl.id, voice.peerLevel(pl.id) > 0.08);

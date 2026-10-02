@@ -69,10 +69,13 @@ export class World {
   private flights: { mesh: THREE.Object3D; from: THREE.Vector3; to: THREE.Vector3; t: number; dur: number }[] = [];
   private puffs: { sprite: THREE.Sprite; t: number }[] = [];
   private hovered?: THREE.Object3D;
+  private animated: THREE.Object3D[] = [];
   private time = 0;
   private openState = '';
   waterLevel = 0.05;
   shake = 0;
+  /** Skip drawing (used by automated test bots via ?norender). */
+  static headless = new URLSearchParams(location.search).has('norender');
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -106,6 +109,7 @@ export class World {
     this.buildPuzzles();
     this.buildClues();
     this.buildItems();
+    this.scene.traverse((o) => (o.name === 'spin' || o.name === 'sail') && this.animated.push(o));
   }
 
   private add(o: THREE.Object3D) {
@@ -527,12 +531,14 @@ export class World {
   // ---------- state ----------
   applyState(s: StateView, me: string, glintRange: number, camPos: THREE.Vector3) {
     // Doors.
-    const key = `${s.cagesOpen.sort().join(',')}|${s.act}`;
+    // Practice runs let a small crew roam between cages.
+    const open = s.practice ? this.cages.map((c) => c.index) : [...s.cagesOpen].sort();
+    const key = `${open.join(',')}|${s.act}`;
     if (key !== this.openState) {
       this.openState = key;
-      this.colliders = buildColliders(this.cages, new Set(s.cagesOpen), s.act >= 3);
+      this.colliders = buildColliders(this.cages, new Set(open), s.act >= 3);
     }
-    for (const [i, door] of this.cageDoors) door.userData.open = s.cagesOpen.includes(i);
+    for (const [i, door] of this.cageDoors) door.userData.open = open.includes(i);
     this.quartersDoor.userData.open = s.act >= 3;
     // Clues.
     const revealed = new Set(s.revealedClues);
@@ -711,10 +717,10 @@ export class World {
       bird.rotation.y = Math.sin(t * 0.7) * 0.6;
     }
     // Spinning parts.
-    this.scene.traverse((o) => {
+    for (const o of this.animated) {
       if (o.name === 'spin') o.rotation.z = Math.sin(t * 0.4) * 0.3;
-      if (o.name === 'sail') o.scale.x = 1 + Math.sin(t * 2 + o.position.x) * 0.04;
-    });
+      else o.scale.x = 1 + Math.sin(t * 2 + o.position.x) * 0.04;
+    }
     // Avatars.
     for (const a of this.avatars.values()) {
       a.group.position.lerp(a.target, Math.min(1, dt * 10));
@@ -745,7 +751,7 @@ export class World {
     const roll = Math.sin(t * 0.6) * 0.012 + Math.sin(t * 1.7) * 0.004;
     this.camera.rotation.z = roll + (this.shake > 0 ? (Math.random() - 0.5) * this.shake : 0);
     this.shake = Math.max(0, this.shake - dt);
-    this.renderer.render(this.scene, this.camera);
+    if (!World.headless) this.renderer.render(this.scene, this.camera);
   }
 
   puzzleWorldPos(id: string): THREE.Vector3 | undefined {
