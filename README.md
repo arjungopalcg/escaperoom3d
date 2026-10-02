@@ -19,6 +19,12 @@ Open the URL, choose a name and **Launch a new ship**. Share the invite link (`?
 4–15 players have joined. **Practice run** lets any number of players (even one) try a run: cage bars do not block you and
 the run is not added to the leaderboard.
 
+For a **solo preview** that needs no server (one player, practice mode, runs the game engine in the page):
+
+```bash
+VITE_LOCAL=1 npx vite build packages/client --outDir dist-preview
+```
+
 For development with hot reload:
 
 ```bash

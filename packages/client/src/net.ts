@@ -1,5 +1,9 @@
 // WebSocket client with automatic reconnect and server clock sync.
 import type { ClientMsg, ServerMsg } from '@crimson/engine';
+import { LocalServer } from './local.ts';
+
+/** Solo preview build: run the game in the page instead of talking to a server. */
+export const LOCAL_MODE = import.meta.env.VITE_LOCAL === '1';
 
 type Handler = (msg: ServerMsg) => void;
 
@@ -11,6 +15,7 @@ export class Net {
   private closedByUser = false;
   private pingTimer?: number;
   private offsets: number[] = [];
+  private local?: LocalServer;
   /** serverTime ≈ Date.now() + offset */
   offset = 0;
   connected = false;
@@ -23,6 +28,13 @@ export class Net {
   connect(hello: ClientMsg) {
     this.hello = hello;
     this.closedByUser = false;
+    if (LOCAL_MODE) {
+      this.local ??= new LocalServer((msg) => setTimeout(() => this.handlers.forEach((h) => h(msg)), 0));
+      this.connected = true;
+      this.onStatus?.(true);
+      this.local.receive(hello);
+      return;
+    }
     this.open();
   }
 
@@ -81,6 +93,10 @@ export class Net {
   }
 
   send(msg: ClientMsg) {
+    if (this.local) {
+      if (msg.t !== 'ping' && msg.t !== 'rtc' && msg.t !== 'mic' && msg.t !== 'bell') this.local.receive(msg);
+      return;
+    }
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
   }
 

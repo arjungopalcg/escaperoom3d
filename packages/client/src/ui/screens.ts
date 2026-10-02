@@ -1,6 +1,6 @@
 // Home, lobby and results screens.
 import { layoutFor, MAX_PLAYERS, type Results } from '@crimson/engine';
-import { net } from '../net.ts';
+import { LOCAL_MODE, net } from '../net.ts';
 import { store } from '../store.ts';
 import { voice } from '../voice.ts';
 import { audio } from '../audio.ts';
@@ -78,13 +78,15 @@ export function showHome(opts: { room?: string; error?: string; onCreate: (name:
         'Your crew mutinied against Captain Blackwater — and lost. Now you are locked in cages in his flooding hold. ',
         'Talk, pass objects between cages and solve linked puzzles before the water — or the Isle of Bones — claims you. ',
       ),
-      h('p', { class: 'faint' }, `4–${MAX_PLAYERS} players · about 45 minutes · voice built in · no install, no account`),
+      LOCAL_MODE
+        ? h('p', { class: 'chip', style: 'display:block;border-radius:8px;padding:8px 12px' }, 'Solo preview: this page runs the whole game in your browser for one player, in practice mode (cage bars don’t block you). The full game is multiplayer for 4–15 players with voice chat.')
+        : h('p', { class: 'faint' }, `4–${MAX_PLAYERS} players · about 45 minutes · voice built in · no install, no account`),
       h('div', { class: 'col', style: 'margin-top:14px' },
         name,
         opts.room
           ? h('button', { class: 'btn primary', on: { click: join } }, `Board ship ${opts.room}`)
-          : h('button', { class: 'btn primary', on: { click: create } }, 'Launch a new ship (host)'),
-        h('div', { class: 'row' }, h('span', { class: 'muted' }, opts.room ? 'Different ship?' : 'Have a code?'), code, h('button', { class: 'btn', on: { click: join } }, 'Join')),
+          : h('button', { class: 'btn primary', on: { click: create } }, LOCAL_MODE ? 'Start the solo preview' : 'Launch a new ship (host)'),
+        LOCAL_MODE ? null : h('div', { class: 'row' }, h('span', { class: 'muted' }, opts.room ? 'Different ship?' : 'Have a code?'), code, h('button', { class: 'btn', on: { click: join } }, 'Join')),
         err,
       ),
     ),
@@ -179,14 +181,16 @@ export function showLobby(onStart: (practice: boolean) => void) {
       { class: 'card wide' },
       h('div', { class: 'row', style: 'justify-content:space-between' },
         h('div', null, h('h1', { class: 'title', style: 'font-size:40px' }, 'Crimson Gull'), h('div', { class: 'tagline', style: 'margin:0' }, 'The Brig of the Crimson Gull')),
-        h('div', { style: 'text-align:right' }, h('div', { class: 'faint' }, 'Ship code'), h('div', { class: 'code' }, L.room), copyBtn),
+        h('div', { style: 'text-align:right' }, h('div', { class: 'faint' }, 'Ship code'), h('div', { class: 'code' }, L.room), LOCAL_MODE ? null : copyBtn),
       ),
       h('div', { class: 'grid2', style: 'margin-top:16px' },
         h('div', { class: 'col' },
           h('h3', null, `Crew (${n}/${MAX_PLAYERS})`),
           players,
-          h('div', { class: 'faint' }, n < L.minPlayers ? `Waiting for at least ${L.minPlayers} sailors. Share the invite link.` : `With ${n} aboard: ${layout.cages} cages, ${layout.crewLabel.toLowerCase()} crew, Act 2 is ${layout.act2 === 'chain' ? 'one linked chain' : layout.act2 === 'split' ? 'a chain with a short split' : 'parallel missions'}.`),
-          isHost
+          LOCAL_MODE ? null : h('div', { class: 'faint' }, n < L.minPlayers ? `Waiting for at least ${L.minPlayers} sailors. Share the invite link.` : `With ${n} aboard: ${layout.cages} cages, ${layout.crewLabel.toLowerCase()} crew, Act 2 is ${layout.act2 === 'chain' ? 'one linked chain' : layout.act2 === 'split' ? 'a chain with a short split' : 'parallel missions'}.`),
+          LOCAL_MODE
+            ? h('div', { class: 'row' }, h('button', { class: 'btn primary', on: { click: () => onStart(true) } }, 'Set sail (solo practice run)'))
+            : isHost
             ? h('div', { class: 'row' },
                 h('button', { class: 'btn primary', disabled: !ok, on: { click: () => onStart(false) } }, 'Set sail (start the run)'),
                 h('button', { class: 'btn small', title: 'Any number of players; cage bars do not block you; not on the leaderboard', on: { click: () => onStart(true) } }, 'Practice run'),
@@ -297,7 +301,7 @@ export function showResults(r: Results, onPlayAgain: () => void) {
         h('div', { class: 'col' },
           h('h3', null, 'Share with the group chat'),
           share,
-          h('div', { class: 'row' }, copy, dl),
+          h('div', { class: 'row' }, copy, LOCAL_MODE ? null : dl),
           h('div', { style: 'margin-top:10px' },
             isHost
               ? h('button', { class: 'btn primary', on: { click: onPlayAgain } }, 'Play again — new ship, same crew')
