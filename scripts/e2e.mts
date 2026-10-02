@@ -216,10 +216,27 @@ for (const pid of checkScenario(scn).order) {
     const helpers: number[] = [];
     for (let i = 0; i < N; i++) if (await canBeIn(i, p.area)) helpers.push(i);
     for (const h of helpers) await goTo(h, p.area);
-    if (sol.cue !== undefined && p.interaction.type === 'sync' && p.interaction.cycle) {
-      while (beatAt(Date.now() + 120, p.interaction.cycle) !== sol.cue || (Date.now() + 120) % 1000 > 400) await sleep(30);
-    }
-    await Promise.all(helpers.map((h) => act(h, { kind: 'sync' })));
+    const cue = sol.cue;
+    const cycle = p.interaction.type === 'sync' ? p.interaction.cycle : undefined;
+    // Each bot presses on its own synced clock, like the real panel does.
+    await Promise.all(
+      helpers.map((h) =>
+        pages[h].evaluate(
+          async ([puzzle, cue, cycle]) => {
+            const c = (window as any).crimson;
+            if (cue != null && cycle) {
+              for (;;) {
+                const t = c.net.serverNow();
+                if ((Math.floor(t / 1000) % cycle) + 1 === cue && t % 1000 < 300) break;
+                await new Promise((r) => setTimeout(r, 20));
+              }
+            }
+            c.net.send({ t: 'act', puzzle, action: { kind: 'sync' } });
+          },
+          [p.id, cue ?? null, cycle ?? null] as const,
+        ),
+      ),
+    );
   } else if (sol.type === 'vote') {
     for (let i = 0; i < N; i++) {
       await goTo(i, p.area);

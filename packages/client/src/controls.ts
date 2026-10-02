@@ -67,7 +67,15 @@ export class Controls {
     window.addEventListener('blur', () => this.keys.clear());
   }
 
+  private lastClient: [number, number] = [0, 0];
+
+  /** Re-pick under the cursor (the view changes as the player moves). */
+  refreshHover() {
+    this.updateHover(this.lastClient[0], this.lastClient[1]);
+  }
+
   private updateHover(cx: number, cy: number) {
+    this.lastClient = [cx, cy];
     if (!this.enabled) {
       this.hover = undefined;
       this.world.setHover(undefined);

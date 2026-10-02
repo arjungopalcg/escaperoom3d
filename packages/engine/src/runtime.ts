@@ -9,6 +9,9 @@ export interface Progress {
   lastActor?: string;
 }
 
+/** Grace for network lag on drum-beat timing. */
+export const SYNC_LAG_MS = 350;
+
 export const emptyProgress = (): Progress => ({ seq: [], presses: [], votes: {} });
 
 export type Action =
@@ -103,10 +106,13 @@ export function attempt(p: PuzzleDef, prog: Progress, action: Action, ctx: Attem
       if (action.kind !== 'sync') return res('invalid', 'Grab hold first.');
       const windowMs = it.type === 'sync' ? it.windowMs : 1500;
       const needed = syncNeeded(p, ctx.connected);
-      const beatIndex = Math.floor(ctx.now / 1000);
+      let beatIndex = Math.floor(ctx.now / 1000);
       if (sol.cue !== undefined && it.type === 'sync' && it.cycle) {
-        const beat = beatAt(ctx.now, it.cycle);
-        if (beat !== sol.cue) return res('wrong', `You heave on beat ${beat} — off the chant! The rope slips back.`, emptyProgress());
+        // Allow for network lag: a press that left the player on the cue a moment ago still counts.
+        const lagged = ctx.now - SYNC_LAG_MS;
+        if (beatAt(ctx.now, it.cycle) === sol.cue) beatIndex = Math.floor(ctx.now / 1000);
+        else if (beatAt(lagged, it.cycle) === sol.cue) beatIndex = Math.floor(lagged / 1000);
+        else return res('wrong', `You heave on beat ${beatAt(ctx.now, it.cycle)} — off the chant! The rope slips back.`, emptyProgress());
       }
       const fresh = prog.presses.filter(
         (x) => x.player !== ctx.player && (sol.cue !== undefined ? x.beat === beatIndex : ctx.now - x.at <= windowMs),

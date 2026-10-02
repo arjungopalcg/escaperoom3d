@@ -227,7 +227,7 @@ describe('runtime', () => {
     const cue = (p.solution as { cue: number }).cue;
     let t = 0;
     while (beatAt(t, 5) !== cue) t += 1000;
-    const off = t + 1000;
+    const off = t + 1500; // mid-way through the next beat, beyond the lag grace
     expect(attempt(p, emptyProgress(), { kind: 'sync' }, { now: off, player: 'a', connected: 12 }).outcome).toBe('wrong');
     let prog = emptyProgress();
     const needed = p.interaction.type === 'sync' ? p.interaction.needed : 0;

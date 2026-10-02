@@ -516,6 +516,7 @@ export class Session {
     // Glints depend on distance, so refresh them as the player walks.
     if (s && now > this.glintAt) {
       this.glintAt = now + 400;
+      this.controls.refreshHover();
       this.world.applyState(s, store.me, store.myRole === 'lookout' ? 60 : 9, this.world.camera.position);
     }
     voice.update();
