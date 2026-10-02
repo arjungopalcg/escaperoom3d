@@ -22,9 +22,6 @@ function makeGame(n: number, seed: number, practice = false) {
     {
       broadcast: (msg) => sent.push({ msg }),
       sendTo: (to, msg) => sent.push({ to, msg }),
-      get log() {
-        return sent.filter((s) => s.msg.t === 'event').map((s) => (s.msg as { text: string }).text);
-      },
       changed: () => {},
       ended: () => (ended = true),
     },
@@ -116,7 +113,6 @@ function playThrough(game: Game, opts: { skipTreasure?: boolean } = {}) {
       default:
         act(actor, { kind: 'answer', value: sol.value as string });
     }
-    if (!game.solved.has(id)) console.log(puz.name, puz.area, actor.area, JSON.stringify((game.io as any).log?.slice(-4)));
     expect(game.solved.has(id), `${puz.module} / ${puz.name}`).toBe(true);
   }
   for (const p of crew()) {

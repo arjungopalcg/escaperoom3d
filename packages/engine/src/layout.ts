@@ -33,3 +33,6 @@ export function layoutFor(playersIn: number): Layout {
   for (let i = 0; i < players; i++) perCage[i % cages]++;
   return { players, cages, crewLabel, act2, style: styleBand(n), perCage };
 }
+
+/** Max distance (m) an item can be thrown to a crewmate; the Quartermaster throws twice as far. */
+export const PASS_RANGE = 12;

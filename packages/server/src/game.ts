@@ -4,6 +4,7 @@ import {
   attempt,
   emptyProgress,
   leaderboardBand,
+  PASS_RANGE,
   publicScenario,
   Rng,
   syncNeeded,
@@ -52,7 +53,7 @@ export interface GameOptions {
   now?: number;
 }
 
-const PASS_RANGE = 10.5;
+
 const ROLE_ORDER: Role[] = ['captain', 'navigator', 'quartermaster', 'bosun', 'lookout'];
 
 export class Game {
@@ -388,9 +389,10 @@ export class Game {
         this.io.changed();
         break;
       case 'solved':
-        if (act.kind === 'useItem') {
-          this.release(pl, act.item);
-          this.items.get(act.item)!.gone = true;
+        // Items used up by the puzzle leave the player's hands.
+        for (const used of act.kind === 'useItem' ? [act.item] : p.requires.items.filter((i) => pl.inventory.includes(i))) {
+          this.release(pl, used);
+          this.items.get(used)!.gone = true;
         }
         this.solve(p, pl);
         break;

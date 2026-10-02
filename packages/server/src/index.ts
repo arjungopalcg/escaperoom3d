@@ -49,6 +49,13 @@ export function createServer(cfg: Config = config, dataDir: string | null = DATA
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
     }
+    // Opt-in debug endpoint for automated end-to-end tests: exposes a room's full scenario (with solutions).
+    const dbg = url.pathname.match(/^\/api\/debug\/rooms\/([A-Z0-9]+)$/);
+    if (dbg && process.env.DEBUG_API === '1') {
+      const g = rooms.get(dbg[1])?.game;
+      res.writeHead(g ? 200 : 404, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(g ? { scenario: g.scn, players: [...g.players.values()] } : { error: 'no game' }));
+    }
     let file = path.join(STATIC_DIR, path.normalize(url.pathname).replace(/^(\.\.[/\\])+/, ''));
     if (!file.startsWith(STATIC_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(STATIC_DIR, 'index.html');
     if (!fs.existsSync(file)) {
