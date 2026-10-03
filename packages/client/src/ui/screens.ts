@@ -4,6 +4,7 @@ import { LOCAL_MODE, net } from '../net.ts';
 import { store } from '../store.ts';
 import { voice } from '../voice.ts';
 import { audio } from '../audio.ts';
+import { mediaUrl } from '../media.ts';
 import { clear, fmtTime, h } from './dom.ts';
 import { openSettings } from './panels.ts';
 
@@ -317,7 +318,12 @@ export function showResults(r: Results, onPlayAgain: () => void) {
 /** Plays media/ending-<ending>.mp4 if it exists; otherwise the narrator reads the epilogue. */
 function endingVideo(ending: Results['ending']): HTMLVideoElement {
   const v = h('video', { class: 'ending-video hidden', playsinline: true, controls: true, preload: 'auto' }) as HTMLVideoElement;
-  v.src = `media/ending-${ending}.mp4`;
+  const src = mediaUrl(`ending-${ending}.mp4`);
+  if (!src) {
+    setTimeout(() => audio.speak(EPILOGUES[ending], 'narrator'), 600);
+    return v;
+  }
+  v.src = src;
   v.addEventListener('loadeddata', () => {
     v.classList.remove('hidden');
     void v.play().catch(() => {});

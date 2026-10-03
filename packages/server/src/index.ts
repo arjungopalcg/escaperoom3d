@@ -42,6 +42,9 @@ export function createServer(cfg: Config = config, dataDir: string | null = DATA
     '.ico': 'image/x-icon',
     '.json': 'application/json',
     '.woff2': 'font/woff2',
+    '.mp4': 'video/mp4',
+    '.mp3': 'audio/mpeg',
+    '.webm': 'video/webm',
   };
 
   const server = http.createServer((req, res) => {
@@ -58,12 +61,32 @@ export function createServer(cfg: Config = config, dataDir: string | null = DATA
       return res.end(JSON.stringify(g ? { scenario: g.scn, players: [...g.players.values()] } : { error: 'no game' }));
     }
     let file = path.join(STATIC_DIR, path.normalize(url.pathname).replace(/^(\.\.[/\\])+/, ''));
-    if (!file.startsWith(STATIC_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(STATIC_DIR, 'index.html');
+    const missing = !file.startsWith(STATIC_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory();
+    // Missing assets (videos, voice files…) are a plain 404 so the client can fall back; page routes get the app.
+    if (missing && path.extname(url.pathname)) {
+      res.writeHead(404, { 'content-type': 'text/plain' });
+      return res.end('Not found');
+    }
+    if (missing) file = path.join(STATIC_DIR, 'index.html');
     if (!fs.existsSync(file)) {
       res.writeHead(404, { 'content-type': 'text/plain' });
       return res.end('Client not built. Run `npm run build`, or use `npm run dev` and open the Vite URL.');
     }
-    res.writeHead(200, { 'content-type': MIME[path.extname(file)] ?? 'application/octet-stream' });
+    const type = MIME[path.extname(file)] ?? 'application/octet-stream';
+    const size = fs.statSync(file).size;
+    // Byte ranges let browsers (Safari especially) stream and seek videos.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+    if (range && (range[1] || range[2])) {
+      const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+      const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+      if (start >= size || start > end) {
+        res.writeHead(416, { 'content-range': `bytes */${size}` });
+        return res.end();
+      }
+      res.writeHead(206, { 'content-type': type, 'content-length': end - start + 1, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes' });
+      return fs.createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { 'content-type': type, 'content-length': size, 'accept-ranges': 'bytes' });
     fs.createReadStream(file).pipe(res);
   });
 

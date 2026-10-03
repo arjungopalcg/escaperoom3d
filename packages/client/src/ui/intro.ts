@@ -2,6 +2,7 @@
 // Google Flow), otherwise narrated story cards over the live 3D scene.
 import { PROLOGUE } from '@crimson/engine';
 import { audio } from '../audio.ts';
+import { mediaUrl } from '../media.ts';
 import { clear, fmtTime, h } from './dom.ts';
 
 export function showIntro(startsAt: number, serverNow: () => number, onDone: () => void) {
@@ -61,7 +62,9 @@ export function showIntro(startsAt: number, serverNow: () => number, onDone: () 
     setTimeout(go, Math.max(4500, line.text.length * 75));
   };
 
-  video.src = 'media/intro.mp4';
+  const src = mediaUrl('intro.mp4');
+  if (!src) return nextCard();
+  video.src = src;
   video.addEventListener('loadeddata', () => {
     if (finished) return;
     card.classList.add('hidden');

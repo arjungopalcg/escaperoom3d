@@ -1,5 +1,6 @@
 // Procedural storm ambience, sound effects and spoken lines — no audio files needed.
 import { voiceKeyFor } from '@crimson/engine';
+import { mediaUrl } from './media.ts';
 import { store } from './store.ts';
 
 export type Sfx = 'click' | 'unlock' | 'wrong' | 'pickup' | 'throw' | 'splash' | 'cannon' | 'drum' | 'bell' | 'thunder' | 'reveal' | 'act' | 'heave';
@@ -226,8 +227,9 @@ class AudioEngine {
   speak(text: string, who: 'captain' | 'parrot' | 'note' | 'narrator', onEnd?: () => void) {
     if (!store.settings.speech) return onEnd?.();
     const key = voiceKeyFor(text);
-    if (key && !this.missingVoice.has(key)) {
-      const el = new Audio(`media/voice/${key}.mp3`);
+    const file = key ? mediaUrl(`voice/${key}.mp3`) : undefined;
+    if (key && file && !this.missingVoice.has(key)) {
+      const el = new Audio(file);
       el.volume = Math.min(1, store.settings.master);
       el.onended = () => onEnd?.();
       el.onerror = () => {

@@ -1,6 +1,6 @@
 # Story media
 
-Drop finished files here; the game picks them up automatically (nothing to configure).
+Drop finished files here and rebuild (`npm run build`, or just push — the host rebuilds). The game uses whatever is present; nothing else to configure.
 Missing files fall back to narrated text cards and the browser's built-in voice.
 
 | File | Used for |
