@@ -22,6 +22,8 @@ export interface Config {
   stuckMs: number;
   runMinutes: number;
   minPlayers: number;
+  /** Intro length before the clock starts (0 to skip). */
+  introMs?: number;
 }
 
 export interface RoomPlayer {
@@ -179,13 +181,16 @@ export class Room {
       sendTo: (id, m) => this.sendTo(id, m),
       changed: () => (this.dirty = true),
       ended: (g) => this.finish(g),
-    }, { practice: practice || n < MIN_PLAYERS, graceMs: this.cfg.graceMs, stuckMs: this.cfg.stuckMs });
+    }, { practice: practice || n < MIN_PLAYERS, graceMs: this.cfg.graceMs, stuckMs: this.cfg.stuckMs, introMs: this.cfg.introMs ?? 0 });
     this.phase = 'playing';
     this.store.track('run_start', { room: this.code, players: n, seed: scenario.seed, practice, est: scenario.estMinutes, attempts: scenario.attempts });
     this.broadcastLobby();
     for (const p of roster) this.sendTo(p.id, this.game.startMessage(p.id));
     this.broadcast({ t: 'state', s: this.game.view(), serverNow: Date.now() });
-    this.broadcast({ t: 'event', kind: 'captain', text: scenario.captainLines.start, speaker: 'captain' });
+    const game = this.game;
+    setTimeout(() => {
+      if (this.game === game && this.phase === 'playing') this.broadcast({ t: 'event', kind: 'captain', text: scenario.captainLines.start, speaker: 'captain' });
+    }, this.cfg.introMs ?? 0);
     return null;
   }
 

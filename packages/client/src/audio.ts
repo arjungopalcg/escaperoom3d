@@ -1,4 +1,5 @@
 // Procedural storm ambience, sound effects and spoken lines — no audio files needed.
+import { voiceKeyFor } from '@crimson/engine';
 import { store } from './store.ts';
 
 export type Sfx = 'click' | 'unlock' | 'wrong' | 'pickup' | 'throw' | 'splash' | 'cannon' | 'drum' | 'bell' | 'thunder' | 'reveal' | 'act' | 'heave';
@@ -209,24 +210,52 @@ class AudioEngine {
     }
   }
 
-  speak(text: string, who: 'captain' | 'parrot' | 'note') {
-    if (!store.settings.speech || !('speechSynthesis' in window)) return;
+  private missingVoice = new Set<string>();
+  private voiceEl?: HTMLAudioElement;
+
+  /** Stop any line currently being spoken. */
+  hush() {
+    this.voiceEl?.pause();
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  /**
+   * Speak a story line. A recorded file (media/voice/<key>.mp3, e.g. made with Gemini TTS or
+   * ElevenLabs) is used when present; otherwise the browser's built-in voice reads it.
+   */
+  speak(text: string, who: 'captain' | 'parrot' | 'note' | 'narrator', onEnd?: () => void) {
+    if (!store.settings.speech) return onEnd?.();
+    const key = voiceKeyFor(text);
+    if (key && !this.missingVoice.has(key)) {
+      const el = new Audio(`media/voice/${key}.mp3`);
+      el.volume = Math.min(1, store.settings.master);
+      el.onended = () => onEnd?.();
+      el.onerror = () => {
+        this.missingVoice.add(key);
+        this.tts(text, who, onEnd);
+      };
+      this.voiceEl = el;
+      void el.play().catch(() => {
+        this.missingVoice.add(key);
+        this.tts(text, who, onEnd);
+      });
+      return;
+    }
+    this.tts(text, who, onEnd);
+  }
+
+  private tts(text: string, who: 'captain' | 'parrot' | 'note' | 'narrator', onEnd?: () => void) {
+    if (!('speechSynthesis' in window)) return onEnd?.();
     const clean = text.replace(/^[A-Z ]+(\([^)]*\))?:\s*/, '').replace(/[“”]/g, '');
     const u = new SpeechSynthesisUtterance(clean);
     u.volume = Math.min(1, store.settings.master * 1.1);
-    if (who === 'captain') {
-      u.pitch = 0.55;
-      u.rate = 0.95;
-    } else if (who === 'parrot') {
-      u.pitch = 2;
-      u.rate = 1.25;
-    } else {
-      u.pitch = 1;
-      u.rate = 1;
-    }
+    const tone = { captain: [0.55, 0.95], parrot: [2, 1.25], narrator: [0.85, 0.92], note: [1, 1] }[who];
+    u.pitch = tone[0];
+    u.rate = tone[1];
     const voices = speechSynthesis.getVoices().filter((v) => v.lang.startsWith('en'));
     const pref = voices.find((v) => /UK|GB|Daniel|Arthur/i.test(v.name)) ?? voices[0];
     if (pref) u.voice = pref;
+    u.onend = () => onEnd?.();
     speechSynthesis.speak(u);
   }
 }

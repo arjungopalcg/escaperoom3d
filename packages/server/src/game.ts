@@ -50,6 +50,8 @@ export interface GameOptions {
   practice: boolean;
   graceMs: number;
   stuckMs: number;
+  /** Time for the intro before the water starts rising. */
+  introMs?: number;
   now?: number;
 }
 
@@ -87,8 +89,9 @@ export class Game {
     readonly opts: GameOptions,
   ) {
     const now = opts.now ?? Date.now();
-    this.startedAt = now;
-    this.lastProgressAt = now;
+    // The clock starts once the intro has played.
+    this.startedAt = now + (opts.introMs ?? 0);
+    this.lastProgressAt = this.startedAt;
     this.durationMs = scn.durationMinutes * 60_000;
     this.pub = publicScenario(scn);
     const rng = new Rng(scn.seed ^ 0x5eed);

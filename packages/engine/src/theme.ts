@@ -153,3 +153,33 @@ export const CAPTAIN_LINES = {
   lowWater: 'BLACKWATER: Hear that? The sea wants you. I can wait.',
   lost: 'BLACKWATER: Down you go. Pity — you’d have fetched a fine price on the Isle.',
 };
+
+/** Opening narration, one line per intro video shot (~8 s each). Keys name the optional voice files. */
+export const PROLOGUE: { key: string; who: 'narrator' | 'captain'; text: string }[] = [
+  { key: 'intro-1', who: 'narrator', text: 'The Crimson Gull. Fastest ship on the Saltmarsh Sea — and the cruellest captain ever to sail her: Elias Blackwater.' },
+  { key: 'intro-2', who: 'narrator', text: 'Three nights ago, you and your shipmates rose against him. You had the numbers. He had the keys.' },
+  { key: 'intro-3', who: 'narrator', text: 'Now you wake in iron cages in his hold, bound for the Isle of Bones, where mutineers are left for the crabs.' },
+  { key: 'intro-4', who: 'captain', text: 'Enjoy your cages, mutineers! By dawn you’ll be marooned on the Isle of Bones — if the sea doesn’t take you first!' },
+  { key: 'intro-5', who: 'narrator', text: 'Then the storm struck. A reef tore open the hull, and the sea came in. The water is rising.' },
+  { key: 'intro-6', who: 'narrator', text: 'But someone aboard is on your side. A note slides through the floorboards: “Trust each other. Every lock has its key in another cage.”' },
+  { key: 'intro-7', who: 'narrator', text: 'Break out together. Take back the ship. Nobody escapes alone.' },
+];
+
+/** Closing narration for each ending. */
+export const EPILOGUES: Record<'escape' | 'treasure' | 'lost', string> = {
+  escape: 'The lifeboat pulls away as the Crimson Gull rolls beneath the waves, Blackwater still shaking his fist at the rail. Every one of you made it.',
+  treasure: 'You row for Port Haven with every soul aboard — and Blackwater’s gold at your feet. Somewhere behind you, a captain howls at the storm.',
+  lost: 'The lanterns gutter out one by one as the sea fills the hold. The Isle of Bones will never see you. Neither will anyone else.',
+};
+
+/** Which recorded voice file (media/voice/<key>.mp3) speaks a given line, if any. */
+export function voiceKeyFor(text: string): string | undefined {
+  const clean = text.replace(/^BLACKWATER( \([^)]*\))?:\s*/, '').trim();
+  for (const [k, v] of Object.entries(CAPTAIN_LINES)) if (v.replace(/^BLACKWATER( \([^)]*\))?:\s*/, '') === clean) return `captain-${k}`;
+  for (const p of PROLOGUE) if (p.text === clean) return p.key;
+  for (const [k, v] of Object.entries(EPILOGUES)) if (v === clean) return `ending-${k}`;
+  for (const p of PARROT_PAIRS) if (p.phrase === clean) return `parrot-${p.word.toLowerCase()}`;
+  const i = PARROT_CHATTER.indexOf(clean);
+  if (i >= 0) return `parrot-chatter-${i + 1}`;
+  return undefined;
+}

@@ -1,5 +1,5 @@
 // Home, lobby and results screens.
-import { layoutFor, MAX_PLAYERS, type Results } from '@crimson/engine';
+import { EPILOGUES, layoutFor, MAX_PLAYERS, type Results } from '@crimson/engine';
 import { LOCAL_MODE, net } from '../net.ts';
 import { store } from '../store.ts';
 import { voice } from '../voice.ts';
@@ -273,8 +273,9 @@ export function showResults(r: Results, onPlayAgain: () => void) {
       'div',
       { class: 'card wide' },
       h('div', { class: 'faint' }, r.practice ? 'Practice run — not on the leaderboard' : `${r.crew} · ${r.players} players`),
+      endingVideo(r.ending),
       h('h1', { class: `ending ${r.ending}` }, e.title),
-      h('p', { class: 'muted' }, e.text),
+      h('p', { class: 'muted' }, EPILOGUES[r.ending]),
       h('div', { class: 'stats' },
         stat('Time', fmtTime(r.timeMs)),
         stat('Score', r.score),
@@ -311,6 +312,18 @@ export function showResults(r: Results, onPlayAgain: () => void) {
       ),
     ),
   );
+}
+
+/** Plays media/ending-<ending>.mp4 if it exists; otherwise the narrator reads the epilogue. */
+function endingVideo(ending: Results['ending']): HTMLVideoElement {
+  const v = h('video', { class: 'ending-video hidden', playsinline: true, controls: true, preload: 'auto' }) as HTMLVideoElement;
+  v.src = `media/ending-${ending}.mp4`;
+  v.addEventListener('loadeddata', () => {
+    v.classList.remove('hidden');
+    void v.play().catch(() => {});
+  });
+  v.addEventListener('error', () => audio.speak(EPILOGUES[ending], 'narrator'), { once: true });
+  return v;
 }
 
 function stat(label: string, v: string | number) {

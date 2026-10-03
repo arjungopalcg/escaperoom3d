@@ -20,6 +20,7 @@ import {
   type Spot,
 } from './layout.ts';
 import { buildAvatar, buildBarrel, buildClue, buildItem, buildParrot, buildProp } from './props.ts';
+import { store } from '../store.ts';
 import { glintTexture, glyphTexture, iron, labelSprite, planks, water } from './textures.ts';
 
 export type PickKind = 'puzzle' | 'clue' | 'item' | 'player' | 'ladder' | 'hatch' | 'lifeboat' | 'cannon' | 'parrot';
@@ -82,9 +83,9 @@ export class World {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.35;
+    this.renderer.toneMappingExposure = 1.6;
     this.scene.background = new THREE.Color('#05080c');
-    this.scene.fog = new THREE.FogExp2('#0a0d12', 0.028);
+    this.scene.fog = new THREE.FogExp2('#141820', 0.018);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -188,9 +189,9 @@ export class World {
       this.add(b);
     }
     // Lights.
-    this.scene.add(new THREE.HemisphereLight('#9fb0c8', '#4a3220', 1.25));
-    this.scene.add(new THREE.AmbientLight('#3a2a1c', 0.6));
-    for (const [x, z] of [[-11, -7], [11, 7], [11, -7], [-11, 7], [0, -9], [0, 9]]) this.lantern(x, H.height - 0.6, z, '#ffb15a', 13);
+    this.scene.add(new THREE.HemisphereLight('#b8c6dc', '#6a4a2e', 1.9));
+    this.scene.add(new THREE.AmbientLight('#5a4630', 1.0));
+    for (const [x, z] of [[-11, -7], [11, 7], [11, -7], [-11, 7], [0, -9], [0, 9]]) this.lantern(x, H.height - 0.6, z, '#ffb15a', 16);
     // Floodwater.
     const wGeo = new THREE.PlaneGeometry(QUARTERS.maxX - H.minX, H.maxZ - H.minZ, 48, 24);
     this.waterMesh = new THREE.Mesh(
@@ -203,7 +204,7 @@ export class World {
   }
 
   private lantern(x: number, y: number, z: number, color: string, dist: number) {
-    const light = new THREE.PointLight(color, 9, dist, 1.6);
+    const light = new THREE.PointLight(color, 14, dist, 1.2);
     light.position.set(x, y, z);
     this.add(light);
     this.lanterns.push(light);
@@ -266,7 +267,7 @@ export class World {
       g.add(plate);
       this.add(g);
       const [lx, lz] = cageToWorld(c, 0, 0);
-      this.lantern(lx, 2.45, lz, skin.color, 6);
+      this.lantern(lx, 2.45, lz, skin.color, 8);
     }
   }
 
@@ -304,7 +305,8 @@ export class World {
     this.box(1.4, 0.08, 2.6, desk, 20.6, 0.85, 0);
     for (const [x, z] of [[20.0, -1.2], [21.2, -1.2], [20.0, 1.2], [21.2, 1.2]]) this.box(0.08, 0.85, 0.08, desk, x, 0.42, z);
     this.box(2.4, 0.5, 1.2, desk, 24.6, 0.25, -4.9);
-    this.lantern(21, Q.height - 0.5, 0, '#ffc477', 10);
+    this.lantern(19, Q.height - 0.5, 0, '#ffc477', 12);
+    this.lantern(24, Q.height - 0.5, 0, '#ffc477', 12);
     // Door between hold and quarters.
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.4, DOOR_Z * 2), new THREE.MeshStandardMaterial({ map: planks('#3b2412', [1, 2], 8) }));
     door.position.set(HOLD.maxX + 0.05, 1.2, 0);
@@ -372,7 +374,7 @@ export class World {
     this.rain = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: '#9fb6c8', transparent: true, opacity: 0.35 }));
     this.rain.visible = false;
     this.add(this.rain);
-    const moon = new THREE.DirectionalLight('#8aa3c4', 0.6);
+    const moon = new THREE.DirectionalLight('#9fb6d6', 1.3);
     moon.position.set(-10, 30, 10);
     this.add(moon);
     this.lightning = new THREE.DirectionalLight('#dfe8ff', 0);
@@ -677,7 +679,8 @@ export class World {
     // Rain only on deck.
     const onDeck = cameraArea === 'deck';
     this.rain.visible = onDeck;
-    (this.scene.fog as THREE.FogExp2).density = onDeck ? 0.016 : 0.028;
+    (this.scene.fog as THREE.FogExp2).density = onDeck ? 0.012 : 0.018;
+    this.renderer.toneMappingExposure = 1.6 * (store.settings.brightness ?? 1);
     if (onDeck) {
       const rp = this.rain.geometry.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < rp.count; i += 2) {
@@ -692,7 +695,7 @@ export class World {
     // Lightning decay.
     this.lightning.intensity *= Math.pow(0.02, dt);
     // Lantern flicker and ship sway.
-    this.lanterns.forEach((l, i) => (l.intensity = 8 + Math.sin(t * 7 + i * 3) * 0.6 + Math.sin(t * 13 + i) * 0.4));
+    this.lanterns.forEach((l, i) => (l.intensity = 13 + Math.sin(t * 7 + i * 3) * 0.8 + Math.sin(t * 13 + i) * 0.5));
     // Doors.
     for (const door of this.cageDoors.values()) {
       const target = door.userData.open ? -1.9 : 0;

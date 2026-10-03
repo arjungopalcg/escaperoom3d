@@ -39,9 +39,32 @@ npm run dev        # game server on :8787 + Vite client on :5173 (proxying /ws)
 | `RUN_MINUTES` | `45` | Length of a run |
 | `MIN_PLAYERS` | `4` | Minimum crew to start a normal run |
 | `GRACE_SECONDS` | `60` | Reconnect grace period before a dropped player's tasks are handed off |
+| `INTRO_SECONDS` | `40` | Story intro before the water starts rising (`0` to skip) |
 | `STUCK_MINUTES` | `5` | No progress for this long → the parrot offers a hint |
 | `DATA_DIR` | `./data` | Leaderboard (`leaderboard.json`) and analytics (`analytics.jsonl`) |
 | `DEBUG_API` | off | `1` exposes `/api/debug/rooms/:code` (full scenario with solutions) for automated tests only |
+
+## Put it online for free
+
+The server serves the 3D client and the game's WebSocket on one port, so one free web service runs everything.
+
+**Render (recommended, no credit card):**
+1. Sign in at [render.com](https://render.com) with GitHub and allow access to this repository.
+2. **New → Blueprint**, pick this repository and the branch with the game. Render reads `render.yaml`.
+3. **Apply**. After the build (a few minutes) the game is at `https://crimson-gull.onrender.com` (or similar).
+   Share that link; players create and join ships from there.
+
+Free-tier limits: the service sleeps after about 15 idle minutes and takes about a minute to wake on the next
+visit, and its disk is wiped on restart, so the leaderboard resets with each deploy.
+
+**Other free hosts:** the `Dockerfile` runs on any Docker host, for example Koyeb's free instance or Google Cloud
+Run. The host must allow WebSockets and route to the `PORT` it sets.
+
+## Story, intro video and voices
+
+See [`docs/story-and-media.md`](docs/story-and-media.md) for the story, a shot-by-shot Google Flow (Veo) prompt list
+for the intro and endings, every voice line with its file name, and free voice tools. Drop finished files into
+`packages/client/public/media/`; until then the game shows narrated story cards and uses the browser voice.
 
 ## How to play
 

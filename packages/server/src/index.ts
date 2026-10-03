@@ -18,6 +18,7 @@ const config: Config = {
   stuckMs: Number(process.env.STUCK_MINUTES ?? 5) * 60_000,
   runMinutes: Number(process.env.RUN_MINUTES ?? 45),
   minPlayers: Number(process.env.MIN_PLAYERS ?? 4),
+  introMs: Number(process.env.INTRO_SECONDS ?? 40) * 1000,
 };
 
 export function createServer(cfg: Config = config, dataDir: string | null = DATA_DIR) {

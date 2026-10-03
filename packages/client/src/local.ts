@@ -10,6 +10,8 @@ import {
 } from '@crimson/engine';
 import { Game } from '../../server/src/game.ts';
 
+const INTRO_MS = 40_000;
+
 type Emit = (msg: ServerMsg) => void;
 
 export class LocalServer {
@@ -59,13 +61,14 @@ export class LocalServer {
         changed: () => (this.dirty = true),
         ended: (g) => this.finish(g),
       },
-      { practice: true, graceMs: 60_000, stuckMs: 5 * 60_000 },
+      { practice: true, graceMs: 60_000, stuckMs: 5 * 60_000, introMs: INTRO_MS },
     );
     this.phase = 'playing';
     this.lobby();
     this.emit(this.game.startMessage(this.me));
     this.emit({ t: 'state', s: this.game.view(), serverNow: Date.now() });
-    this.emit({ t: 'event', kind: 'captain', text: scenario.captainLines.start, speaker: 'captain' });
+    const game = this.game;
+    setTimeout(() => this.game === game && this.emit({ t: 'event', kind: 'captain', text: scenario.captainLines.start, speaker: 'captain' }), INTRO_MS);
   }
 
   private finish(g: Game) {

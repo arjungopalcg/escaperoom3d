@@ -101,6 +101,11 @@ export class Hud {
 
   // ---------- per-frame ----------
   tick(serverNow: number, s: StateView) {
+    if (serverNow < s.startedAt) {
+      this.timerText.textContent = `Storm hits in ${fmtTime(s.startedAt - serverNow)}`;
+      this.lastSecond = -1;
+      return;
+    }
     const remaining = s.endsAt - serverNow;
     const sec = Math.ceil(remaining / 1000);
     if (sec !== this.lastSecond) {

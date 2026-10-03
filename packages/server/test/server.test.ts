@@ -207,6 +207,18 @@ describe('game', () => {
     expect(game.ending).toBe('lost');
   });
 
+  it('starts the clock after the intro', () => {
+    const scn = generateScenario(4, { seed: 1 });
+    const roster = Array.from({ length: 4 }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: '#fff', connected: true }));
+    const io = { broadcast: () => {}, sendTo: () => {}, changed: () => {}, ended: () => {} };
+    const now = 1_700_000_000_000;
+    const g = new Game(scn, roster, io, { practice: false, graceMs: 60_000, stuckMs: 300_000, introMs: 40_000, now });
+    expect(g.startedAt).toBe(now + 40_000);
+    expect(g.endsAt).toBe(now + 40_000 + 45 * 60_000);
+    g.tick(now + 45 * 60_000);
+    expect(g.ending).toBeUndefined();
+  });
+
   it('gives tiered hints, three at most', () => {
     const { game, scn } = makeGame(4, 3);
     const first = scn.puzzles.find((p) => p.act === 1 && p.requires.puzzles.length === 0)!;

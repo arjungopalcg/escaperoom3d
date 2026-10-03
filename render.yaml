@@ -1,0 +1,21 @@
+# Render Blueprint: one free web service runs the game server and serves the 3D client.
+# Render → New → Blueprint → pick this repo. Free services sleep after ~15 idle minutes
+# (the first visit then takes about a minute to wake) and their disk is wiped on restart,
+# so the leaderboard resets on each deploy.
+services:
+  - type: web
+    name: crimson-gull
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: RUN_MINUTES
+        value: "45"
+      - key: INTRO_SECONDS
+        value: "40"
+      - key: MIN_PLAYERS
+        value: "4"

@@ -18,12 +18,14 @@ export interface Settings {
   speech: boolean;
   pushToTalk: boolean;
   invertLook: boolean;
+  /** Scene brightness multiplier (0.7–1.8). */
+  brightness: number;
 }
 
 const SETTINGS_KEY = 'crimson-gull-settings';
 
 function loadSettings(): Settings {
-  const d: Settings = { textSize: 'medium', master: 0.8, sfx: 0.8, voice: 1, speech: true, pushToTalk: false, invertLook: false };
+  const d: Settings = { textSize: 'medium', master: 0.8, sfx: 0.8, voice: 1, speech: true, pushToTalk: false, invertLook: false, brightness: 1 };
   try {
     return { ...d, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
   } catch {

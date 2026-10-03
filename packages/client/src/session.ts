@@ -6,6 +6,7 @@ import { Controls, isTyping } from './controls.ts';
 import { net } from './net.ts';
 import { store } from './store.ts';
 import { Hud } from './ui/hud.ts';
+import { showIntro } from './ui/intro.ts';
 import {
   closeModal,
   modalOpen,
@@ -94,6 +95,11 @@ export class Session {
     audio.ensure();
     audio.startAmbience();
     this.loop();
+    const startsAt = store.state?.startedAt ?? 0;
+    if (net.serverNow() < startsAt - 1500) {
+      this.controls.enabled = false;
+      showIntro(startsAt, () => net.serverNow(), () => (this.controls.enabled = true));
+    }
     const role = store.myRole;
     this.hud.toast(`You are the ${ROLE_INFO[role].name}. ${ROLE_INFO[role].blurb}`, '', 9000);
     this.hud.addLog('Press F1 for controls. Talk to your crew — every cage holds something another needs.', 'event');
